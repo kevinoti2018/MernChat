@@ -17,7 +17,7 @@ const server  = require('http').createServer(app);
 const PORT = 5001;
 const io = require('socket.io')(server,{
     cors:{
-        origin: 'http://localhost:5001',
+        origin: 'http://localhost:3000',
         methods:['GET','POST']
     }
 });
@@ -58,8 +58,19 @@ io.on('connection',(socket)=>{
         roomMessages = sortRoomMessagesByDate(roomMessages);
         socket.emit('room-messages', roomMessages)
     })
+    socket.on('message-room', async(room,content,sender,time,date)=>{
+        const newMessages = await Message.create({content, from:sender,time,date, to:room});
+        let roomMessages = await getLastMessagesFromRoom(room);
+        roomMessages =sortRoomMessagesByDate(room);
+        //sending message to room
+        io.to(room).emit('room-messages', roomMessages)
+
+        socket.broadcast.emit('notifications',room)
+    })
 })
 
-server.listen(PORT,()=>{console.log('listening on  port', PORT)
+
+server.listen(PORT,()=>{
+    console.log('listening on  port', PORT)
 
 });

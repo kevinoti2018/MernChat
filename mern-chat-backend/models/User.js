@@ -34,19 +34,29 @@ const UserSchema = new mongoose.Schema({
 
 },{minimize:false})
 
-UserSchema.pre('save', function(){
-    const user =  this
-    if(!user.isModified('password')) return next();
-    bcrypt.genSalt(10, function(err,salt){
-        if(err) return next(err);
+// UserSchema.pre('save', function(next){
+//     const user =  this
+//     if(!user.isModified('password')) return next();
+//     bcrypt.genSalt(10, function(err,salt){
+//         if(err) return next(err);
 
-        bcrypt.hash(user.password, salt, function(err,hash){
-            if (err) return next(err);
+//         bcrypt.hash(user.password, salt, function(err,hash){
+//             if (err) return next(err);
 
-            user.password = hash
-             next();
-        })
-    })
+//             user.password = hash
+//              next();
+//         })
+//     })
+// })
+UserSchema.pre('save',async function(next){
+    try{
+        const salt = await bcrypt.genSalt(10)
+        const hashedPassword = await bcrypt.hash(this.password,salt)
+        this.password = hashedPassword
+        next()
+    }catch(error){
+        next(error)
+    }
 })
 
 UserSchema.methods.toJSON = function(){
