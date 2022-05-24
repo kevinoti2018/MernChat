@@ -34,30 +34,36 @@ const UserSchema = new mongoose.Schema({
 
 },{minimize:false})
 
-// UserSchema.pre('save', function(next){
-//     const user =  this
-//     if(!user.isModified('password')) return next();
-//     bcrypt.genSalt(10, function(err,salt){
-//         if(err) return next(err);
+UserSchema.pre('save', function(next){
+    const user  =  this;
+    if (!user.isModified('password')) return next();
 
-//         bcrypt.hash(user.password, salt, function(err,hash){
-//             if (err) return next(err);
+    bcrypt.genSalt(10, function(err,salt){
+        if(err) return next(err);
 
-//             user.password = hash
-//              next();
-//         })
-//     })
-// })
-UserSchema.pre('save',async function(next){
-    try{
-        const salt = await bcrypt.genSalt(10)
-        const hashedPassword = await bcrypt.hash(this.password,salt)
-        this.password = hashedPassword
-        next()
-    }catch(error){
-        next(error)
-    }
+        bcrypt.hash(user.password, salt, function(err,hash){
+            if(err) return next(err);
+
+            user.password = hash;
+            next();
+        })
+    }) 
 })
+UserSchema.methods.toJSON = function(){
+    const user  = this;
+    const userObject = user.toObject();
+    delete userObject.password;
+    return userObject;
+}
+
+UserSchema.statics.findByCredentials = async function (email, password) {
+    const user = await User.findOne({email})
+    if(!user) throw Error('Invalid email or password!')
+
+    const isMatch = await bcrypt.compare(password, user.password)
+    if(!isMatch) throw Error('Invalid password or password')
+    return user
+}
 
 UserSchema.methods.toJSON = function(){
     const user = this;
